@@ -6,12 +6,11 @@ from typing import Annotated
 from fastapi import FastAPI, Depends, status, HTTPException
 from sqlalchemy.exc import IntegrityError
 from utils import password_hash
-from dotenv import load_dotenv
-from schemas import UserCreate, UserRes, LoginReq, Token
+from schemas import UserCreate, UserRes, LoginReq, Token , AdminUserRes
 from models import User
 from db import get_session
-from auth import authenticate_user, create_access_token, get_current_user 
-load_dotenv()
+from auth import authenticate_user, create_access_token, get_current_user , check_admin 
+from sqlalchemy import select 
 
 app = FastAPI(title="User Profile API")
 
@@ -49,8 +48,19 @@ async def protected_route(token: Annotated[str, Depends(oauth2_scheme)],session:
     return user 
 
 
+@app.get("/users",response_model=list[AdminUserRes])
+async def get_all_users(token: Annotated[str, Depends(oauth2_scheme)],session:AsyncSession=Depends(get_session)):
+    if not check_admin(token):
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN
+        )
+    stmt = select(User)
+    users = await session.scalars(stmt)
+    return users.all()
+
+
 @app.post("/token")
-async def login(req: LoginReq , session : AsyncSession = Depends(get_session))->Token:
+async def login(req: LoginReq , session: AsyncSession = Depends(get_session))->Token:
     user = await authenticate_user(req.username, req.password,session)
     if not user:
         raise HTTPException(

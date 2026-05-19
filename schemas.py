@@ -9,6 +9,7 @@ class UserCreate(BaseModel):
     password : str = Field(min_length=8,max_length=30)
     email : EmailStr
     bio : str | None 
+    is_admin : bool = False 
 
     @field_validator("first_name","last_name","username","password",mode="before")
     @classmethod 
@@ -52,6 +53,10 @@ class UserRes(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
+
+class AdminUserRes(UserRes):
+    is_active : bool 
+    is_admin : bool
 
 class LoginReq(BaseModel):
     username : str 
