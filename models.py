@@ -1,6 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase 
 from sqlalchemy.orm import Mapped, mapped_column 
-from sqlalchemy import String, Boolean, Text, null
+from sqlalchemy import String, Boolean, Text
 
 class Base(DeclarativeBase):
     """Base class for every model , used for metadata"""

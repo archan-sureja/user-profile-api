@@ -41,7 +41,7 @@ class UserCreate(BaseModel):
             )
         return val 
 
-class UserCreateRes(BaseModel):
+class UserRes(BaseModel):
     id : int 
     first_name : str 
     last_name : str 
@@ -52,3 +52,11 @@ class UserCreateRes(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
+
+class LoginReq(BaseModel):
+    username : str 
+    password : str 
+
+class Token(BaseModel):
+    token : str 
+    type : str = "bearer"
