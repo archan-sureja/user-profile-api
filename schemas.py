@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr , field_validator , Field, ConfigDict, 
 
 NameStr= Annotated[str,Field(min_length=1,max_length=30)]
 UsernameStr = Annotated[str,Field(min_length=8,max_length=30)]
-PasswordStr= Annotated[str,Field(min_length=8,max_length=30)]
+PasswordStr= Annotated[str,Field(min_length=8,max_length=256)]
 BioStr = Annotated[str|None, Field(max_length=500)]
 
 class UserBase(BaseModel):
