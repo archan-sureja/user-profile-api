@@ -1,3 +1,4 @@
+import stat
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from datetime import timedelta
@@ -6,7 +7,7 @@ from typing import Annotated
 from fastapi import FastAPI, Depends, status, HTTPException
 from sqlalchemy.exc import IntegrityError
 from utils import password_hash
-from schemas import UserCreate, UserRes, LoginReq, Token , AdminUserRes
+from schemas import UserCreate, UserRes, LoginReq, Token , AdminUserRes, UserUpdate
 from models import User
 from db import get_session
 from auth import authenticate_user, create_access_token, get_current_user , check_admin 
@@ -43,10 +44,24 @@ async def create_user(userCreate: UserCreate, session=Depends(get_session)) -> U
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 @app.get("/users/me",response_model=UserRes)
-async def protected_route(token: Annotated[str, Depends(oauth2_scheme)],session:AsyncSession=Depends(get_session)):
+async def get_profile(token: Annotated[str, Depends(oauth2_scheme)],session:AsyncSession=Depends(get_session)):
     user = await get_current_user(token=token,db_session=session)
     return user 
 
+@app.patch("/users/me",response_model=UserRes)
+async def update_profile(updateData:UserUpdate,token : str = Depends(oauth2_scheme),session:AsyncSession=Depends(get_session)):
+    user = await get_current_user(token,session)
+    updateDict = updateData.model_dump(exclude_unset=True)
+    if not updateDict:
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail="No data provided for update"
+        )
+    for k,v in updateDict.items():
+        setattr(user,k,v)
+    await session.commit()
+    await session.refresh(user)
+    return user 
 
 @app.get("/users",response_model=list[AdminUserRes])
 async def get_all_users(token: Annotated[str, Depends(oauth2_scheme)],session:AsyncSession=Depends(get_session)):
