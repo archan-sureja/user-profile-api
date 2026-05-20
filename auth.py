@@ -36,3 +36,14 @@ async def get_current_user(token,db_session:AsyncSession)->User|None:
     user_id = payload.get("sub")
     user = await db_session.get(User,int(user_id))  # ty:ignore[invalid-argument-type]
     return user 
+
+def check_admin(token):
+    try:
+        payload = jwt.decode(token,key=settings.SECRET_KEY,algorithms=[settings.ALGORITHM])
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token"
+        )
+    is_admin = payload.get("is_admin")
+    return is_admin == "True"
