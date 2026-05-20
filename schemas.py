@@ -1,54 +1,19 @@
-from models import Base
+from typing import Annotated, Literal
 import re 
-from pydantic import BaseModel, EmailStr , field_validator , Field, ConfigDict
+from pydantic import BaseModel, EmailStr , field_validator , Field, ConfigDict, model_validator
 
-class UserCreate(BaseModel):
-    """schema for user creation request validation"""
-    first_name: str = Field(min_length=1,max_length=30) 
-    last_name : str = Field(min_length=1,max_length=30)
-    username : str = Field(min_length=8,max_length=30)
-    password : str = Field(min_length=8,max_length=30)
-    email : EmailStr
-    bio : str | None 
-    is_admin : bool = False 
+NameStr= Annotated[str,Field(min_length=1,max_length=30)]
+UsernameStr = Annotated[str,Field(min_length=8,max_length=30)]
+PasswordStr= Annotated[str,Field(min_length=8,max_length=30)]
+BioStr = Annotated[str|None, Field(max_length=500)]
 
-    @field_validator("first_name","last_name","username","password",mode="before")
-    @classmethod 
-    def strip_val(cls,val:str)->str:
-            return val.strip()
-        
-
-    @field_validator("bio",mode="after")
-    @classmethod 
-    def check_empty_bio(cls,val:str | None)->str|None:
-        if val is None:
-            return val 
-        elif val.strip() == "":
-            return None
-        return val 
-
-    @field_validator("first_name","last_name")
-    @classmethod 
-    def validate_names(cls,val:str)->str:
-        if not val.isalpha():
-            raise ValueError("Must contain only alphabets")
-        return val 
-    
-    @field_validator("username")
-    @classmethod 
-    def validate_username(cls,val:str)->str: 
-        if not re.fullmatch(r"[a-zA-Z0-9_.]+",val):
-            raise ValueError(
-                "Username can contain only lowercase letters (a-zA-Z), numbers (0-9), dots (.), and underscores (_)"
-            )
-        return val
-
-class UserUpdate(BaseModel):
-    first_name : str | None= Field(default=None,min_length=1,max_length=30)
-    last_name : str | None = Field(default=None,min_length=1,max_length=30)
-    bio : str | None = Field(default=None)
-    email :  EmailStr | None = Field(default="")
-    username : str | None = Field(default=None,min_length=8,max_length=30)
+class UserBase(BaseModel):
+    """Base User Schema"""
+    first_name: NameStr | None = None 
+    last_name : NameStr | None = None 
+    username : UsernameStr | None = None 
+    bio : BioStr | None = None 
+    email : EmailStr | None = None 
 
     @field_validator("first_name","last_name","username","email",mode="before")
     @classmethod 
@@ -57,7 +22,7 @@ class UserUpdate(BaseModel):
                 raise ValueError("Null value not allowed")
             return val.strip()
 
-    @field_validator("bio",mode="after")
+    @field_validator("bio",mode="before")
     @classmethod 
     def check_empty_bio(cls,val:str | None)->str|None:
         if val is None:
@@ -78,21 +43,28 @@ class UserUpdate(BaseModel):
     def validate_username(cls,val:str)->str: 
         if not re.fullmatch(r"[a-zA-Z0-9_.]+",val):
             raise ValueError(
-                "Username can contain only lowercase letters (a-zA-Z), numbers (0-9), dots (.), and underscores (_)"
+                "Username can contain only letters (a-zA-Z), numbers (0-9), dots (.), and underscores (_)"
             )
         return val
 
-class UserRes(BaseModel):
-    id : int 
-    first_name : str 
-    last_name : str 
-    username : str 
+class UserCreate(UserBase):
+    """schema for user creation request validation"""
+    first_name: NameStr 
+    last_name : NameStr
+    username : UsernameStr 
+    password : PasswordStr
     email : EmailStr 
-    bio : str | None 
+    bio : BioStr | None 
 
-    # model_config = ConfigDict(
-    #     from_attributes=True
-    # )
+class UserUpdate(UserBase):
+    pass 
+
+class UserRes(UserBase):
+    id : int
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 class AdminUserRes(UserRes):
     is_active : bool 
@@ -104,4 +76,4 @@ class LoginReq(BaseModel):
 
 class Token(BaseModel):
     token : str 
-    type : str = "bearer"
+    type : Literal["bearer"] = "bearer"
