@@ -1,4 +1,3 @@
-import stat
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from datetime import timedelta
@@ -10,7 +9,7 @@ from utils import password_hash
 from schemas import UserCreate, UserRes, LoginReq, Token , AdminUserRes, UserUpdate
 from models import User
 from db import get_session
-from auth import authenticate_user, create_access_token, get_current_user , check_admin 
+from auth import authenticate_user, create_access_token, get_current_active_user , check_admin 
 from sqlalchemy import select 
 
 app = FastAPI(title="User Profile API")
@@ -45,14 +44,14 @@ async def create_user(userCreate: UserCreate, session=Depends(get_session)) -> U
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 @app.get("/users/me",response_model=UserRes)
 async def get_profile(token: Annotated[str, Depends(oauth2_scheme)],session:AsyncSession=Depends(get_session)):
-    user = await get_current_user(token=token,db_session=session)
+    user = await get_current_active_user(token=token,db_session=session)
     return user 
 
 @app.patch("/users/me",response_model=UserRes)
 async def update_profile(updateData:UserUpdate,token : str = Depends(oauth2_scheme),session:AsyncSession=Depends(get_session)):
-    user = await get_current_user(token,session)
+    user = await get_current_active_user(token,session)
     updateDict = updateData.model_dump(exclude_unset=True)
-    if not updateDict:
+    if user and not updateDict:
         raise HTTPException(
             status_code = status.HTTP_400_BAD_REQUEST,
             detail="No data provided for update"
@@ -73,7 +72,22 @@ async def get_all_users(token: Annotated[str, Depends(oauth2_scheme)],session:As
     users = await session.scalars(stmt)
     return users.all()
 
-
+@app.delete("/users/{user_id}",status_code=status.HTTP_204_NO_CONTENT)
+async def deactivate_user(user_id : int,token:str=Depends(oauth2_scheme),session:AsyncSession=Depends(get_session)):
+    if not check_admin(token):
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+        )
+    user = await session.get(User,user_id)
+    if not user:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    user.is_active = False 
+    await session.commit()
+    return 
+    
 @app.post("/token")
 async def login(req: LoginReq , session: AsyncSession = Depends(get_session))->Token:
     user = await authenticate_user(req.username, req.password,session)
