@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 import re 
-from pydantic import BaseModel, EmailStr , field_validator , Field, ConfigDict, model_validator
+from pydantic import BaseModel, EmailStr , field_validator , Field, ConfigDict
 
 NameStr= Annotated[str,Field(min_length=1,max_length=30)]
 UsernameStr = Annotated[str,Field(min_length=8,max_length=30)]

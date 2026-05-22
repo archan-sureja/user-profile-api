@@ -35,7 +35,7 @@ async def get_current_active_user(token,db_session:AsyncSession)-> User|None:
         )
     user_id = payload.get("sub")
     user = await db_session.get(User,int(user_id))  # ty:ignore[invalid-argument-type]
-    if not user.is_active:
+    if user and not user.is_active:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail="Inactive account"
